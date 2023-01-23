@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-migrate/migrate/v4"
+	mysqlMigration "github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
@@ -49,4 +54,34 @@ func Connect(ctx context.Context, cfg *config.Config) (*gorm.DB, error) {
 	}
 
 	return db, nil
+}
+
+// Migrate migrates the database schema.
+func Migrate(db *gorm.DB) error {
+	log.Info("running database migration")
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+
+	driver, err := mysqlMigration.WithInstance(sqlDB, &mysqlMigration.Config{})
+	if err != nil {
+		return err
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://internal/database/mysql/migrations",
+		"mysql", driver)
+	if err != nil {
+		return err
+	}
+
+	err = m.Up()
+	if err != nil && err == migrate.ErrNoChange {
+		log.Info("No schema changes to apply")
+		return nil
+	}
+
+	return err
 }

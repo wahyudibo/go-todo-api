@@ -1,9 +1,13 @@
 package mysqldb
 
 import (
+	"errors"
+	"time"
+
 	"gorm.io/gorm"
 
 	"github.com/wahyudibo/go-todo-api/internal/repository"
+	"github.com/wahyudibo/go-todo-api/internal/repository/models"
 )
 
 type todoRepository struct {
@@ -16,22 +20,40 @@ func NewTodoRepository(dbClient *gorm.DB) repository.TodoRepository {
 	}
 }
 
-func (r *todoRepository) List() error {
-	return nil
+func (r *todoRepository) List() ([]models.Todo, error) {
+	var todos []models.Todo
+	result := r.client.Find(&todos)
+	return todos, result.Error
 }
 
-func (r *todoRepository) GetByID() error {
-	return nil
+func (r *todoRepository) GetByID(todoID int64) (*models.Todo, error) {
+	var todo models.Todo
+	result := r.client.Where("id = ?", todoID).First(&todo)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+
+	return &todo, result.Error
 }
 
-func (r *todoRepository) Create() error {
-	return nil
+func (r *todoRepository) Create(description string) error {
+	todo := models.Todo{
+		Description: description,
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+	}
+	result := r.client.Create(&todo)
+	return result.Error
 }
 
-func (r *todoRepository) Update() error {
-	return nil
+func (r *todoRepository) Update(todoID int64, updates map[string]interface{}) (int64, error) {
+	var todo models.Todo
+	result := r.client.Model(&todo).Where("id = ?", todoID).Updates(updates)
+	return result.RowsAffected, result.Error
 }
 
-func (r *todoRepository) Delete() error {
-	return nil
+func (r *todoRepository) Delete(todoID int64) (int64, error) {
+	todo := models.Todo{ID: todoID}
+	result := r.client.Delete(&todo)
+	return result.RowsAffected, result.Error
 }

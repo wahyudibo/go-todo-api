@@ -1,15 +1,17 @@
 package repository
 
+import "github.com/wahyudibo/go-todo-api/internal/repository/models"
+
 // TodoRepository provides method to interact with todo resource.
 type TodoRepository interface {
 	// List lists all todos
-	List() error
+	List() ([]models.Todo, error)
 	// GetByID gets todo by its id
-	GetByID() error
+	GetByID(todoID int64) (*models.Todo, error)
 	// Create creates new todo
-	Create() error
+	Create(description string) error
 	// Update updates / modifies existing todo by its id
-	Update() error
+	Update(todoID int64, updates map[string]interface{}) (int64, error)
 	// Delete deletes todo by its id
-	Delete() error
+	Delete(todoID int64) (int64, error)
 }
