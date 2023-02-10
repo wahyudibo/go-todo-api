@@ -119,7 +119,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rowsAffected, err := h.TodoRepository.Update(todoID, reqBody.ToModel())
+	todo, err := h.TodoRepository.Update(todoID, reqBody.ToModel())
 	if err != nil {
 		log.Errorf("failed when updating todo: %v", err)
 		render.Status(r, http.StatusInternalServerError)
@@ -128,7 +128,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	if rowsAffected == 0 {
+	if todo == nil {
 		render.Status(r, http.StatusNotFound)
 		render.JSON(w, r, &dto.ErrorResponse{
 			Message: models.ErrRecordNotFound,
@@ -150,7 +150,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rowsAffected, err := h.TodoRepository.Delete(todoID)
+	isFound, err := h.TodoRepository.Delete(todoID)
 	if err != nil {
 		log.Errorf("failed when deleting todo: %v", err)
 		render.Status(r, http.StatusInternalServerError)
@@ -159,7 +159,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	if rowsAffected == 0 {
+	if !isFound {
 		render.Status(r, http.StatusNotFound)
 		render.JSON(w, r, &dto.ErrorResponse{
 			Message: models.ErrRecordNotFound,

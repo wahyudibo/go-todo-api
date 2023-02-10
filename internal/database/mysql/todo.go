@@ -46,14 +46,21 @@ func (r *todoRepository) Create(description string) error {
 	return result.Error
 }
 
-func (r *todoRepository) Update(todoID int64, updates map[string]interface{}) (int64, error) {
+func (r *todoRepository) Update(todoID int64, updates map[string]interface{}) (*models.Todo, error) {
 	var todo models.Todo
 	result := r.client.Model(&todo).Where("id = ?", todoID).Updates(updates)
-	return result.RowsAffected, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+
+	return &todo, result.Error
 }
 
-func (r *todoRepository) Delete(todoID int64) (int64, error) {
+func (r *todoRepository) Delete(todoID int64) (bool, error) {
 	todo := models.Todo{ID: todoID}
 	result := r.client.Delete(&todo)
-	return result.RowsAffected, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return false, nil
+	}
+	return true, result.Error
 }

@@ -11,7 +11,7 @@ type TodoRepository interface {
 	// Create creates new todo
 	Create(description string) error
 	// Update updates / modifies existing todo by its id
-	Update(todoID int64, updates map[string]interface{}) (int64, error)
+	Update(todoID int64, updates map[string]interface{}) (*models.Todo, error)
 	// Delete deletes todo by its id
-	Delete(todoID int64) (int64, error)
+	Delete(todoID int64) (bool, error)
 }
