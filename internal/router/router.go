@@ -36,5 +36,8 @@ func (rb *RouteBuilder) Build() *chi.Mux {
 	r.Put("/api/todos/{todoId}", rb.todoService.Update)
 	r.Delete("/api/todos/{todoId}", rb.todoService.Delete)
 
+	r.Post("/api/objects/upload", rb.todoService.Upload)
+	r.Get("/api/objects/{objectKey}", rb.todoService.Download)
+
 	return r
 }

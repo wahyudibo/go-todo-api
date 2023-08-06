@@ -2,6 +2,8 @@ package repository
 
 import "github.com/wahyudibo/go-todo-api/internal/repository/models"
 
+//go:generate mockery --name TodoRepository
+
 // TodoRepository provides method to interact with todo resource.
 type TodoRepository interface {
 	// List lists all todos

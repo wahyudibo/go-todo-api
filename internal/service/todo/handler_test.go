@@ -12,8 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	mockStorageAdapter "github.com/wahyudibo/go-todo-api/internal/adapter/storage/mocks"
 	"github.com/wahyudibo/go-todo-api/internal/dto"
-	"github.com/wahyudibo/go-todo-api/internal/repository"
+	mockRepo "github.com/wahyudibo/go-todo-api/internal/repository/mocks"
 	"github.com/wahyudibo/go-todo-api/internal/repository/models"
 )
 
@@ -40,11 +41,13 @@ func TestTodoService(t *testing.T) {
 }
 
 func testTodoServiceListFailedInternalServerError(t *testing.T) {
-	todoRepo := repository.NewMockTodoRepository(t)
+	todoRepo := mockRepo.NewTodoRepository(t)
 	expectedErr := errors.New("Internal server error")
 	todoRepo.On("List").Return(nil, expectedErr)
 
-	todoSvc := NewTodoService(todoRepo)
+	storageAdapter := mockStorageAdapter.NewStorageAdapter(t)
+
+	todoSvc := NewTodoService(todoRepo, storageAdapter)
 	endpoint := "/api/todos"
 
 	r := chi.NewRouter()
@@ -67,11 +70,13 @@ func testTodoServiceListFailedInternalServerError(t *testing.T) {
 }
 
 func testTodoServiceListEmptyList(t *testing.T) {
-	todoRepo := repository.NewMockTodoRepository(t)
+	todoRepo := mockRepo.NewTodoRepository(t)
 	emptyTodoList := make([]models.Todo, 0)
 	todoRepo.On("List").Return(emptyTodoList, nil)
 
-	todoSvc := NewTodoService(todoRepo)
+	storageAdapter := mockStorageAdapter.NewStorageAdapter(t)
+
+	todoSvc := NewTodoService(todoRepo, storageAdapter)
 	endpoint := "/api/todos"
 
 	r := chi.NewRouter()

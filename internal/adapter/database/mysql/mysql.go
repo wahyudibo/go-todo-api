@@ -71,7 +71,7 @@ func Migrate(db *gorm.DB) error {
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://internal/database/mysql/migrations",
+		"file://internal/adapter/database/mysql/migrations",
 		"mysql", driver)
 	if err != nil {
 		return err

@@ -8,8 +8,11 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
 
+	mysqldbadapter "github.com/wahyudibo/go-todo-api/internal/adapter/database/mysql"
+	storageadapter "github.com/wahyudibo/go-todo-api/internal/adapter/storage"
+	localstorageadapter "github.com/wahyudibo/go-todo-api/internal/adapter/storage/local"
+	s3storageadapter "github.com/wahyudibo/go-todo-api/internal/adapter/storage/s3"
 	"github.com/wahyudibo/go-todo-api/internal/config"
-	"github.com/wahyudibo/go-todo-api/internal/database/mysql"
 	"github.com/wahyudibo/go-todo-api/internal/router"
 	"github.com/wahyudibo/go-todo-api/internal/service/todo"
 )
@@ -29,22 +32,36 @@ func main() {
 	}
 
 	// initialize db connection
-	db, err := mysqldb.Connect(ctx, &cfg)
+	db, err := mysqldbadapter.Connect(ctx, &cfg)
 	if err != nil {
 		log.Fatalf("failed when initiating database: %v", err)
 	}
 
 	// migrate the database
-	err = mysqldb.Migrate(db)
+	err = mysqldbadapter.Migrate(db)
 	if err != nil {
-		log.Fatalf("Error running schema migration %v", err)
+		log.Fatalf("error running schema migration %v", err)
+	}
+
+	// initializes storage adapters
+	var storageAdapter storageadapter.StorageAdapter
+	switch cfg.StorageDriver {
+	case "s3":
+		storageAdapter, err = s3storageadapter.New(ctx, &cfg)
+	case "local":
+		storageAdapter, err = localstorageadapter.New(&cfg)
+	default:
+		log.Fatalf("unknown storage driver. Acceptable storage driver are: local, s3")
+	}
+	if err != nil {
+		log.Fatalf("failed to initializes storage adapter: %+v\n", err)
 	}
 
 	// initialize repositories
-	todoRepo := mysqldb.NewTodoRepository(db)
+	todoRepo := mysqldbadapter.NewTodoRepository(db)
 
 	// initializes service
-	todoService := todoservice.NewTodoService(todoRepo)
+	todoService := todoservice.NewTodoService(todoRepo, storageAdapter)
 
 	// initialize router
 	routeBuilder := router.New(todoService)

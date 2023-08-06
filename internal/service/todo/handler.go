@@ -1,13 +1,16 @@
 package todoservice
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	log "github.com/sirupsen/logrus"
 
+	storageadapter "github.com/wahyudibo/go-todo-api/internal/adapter/storage"
 	"github.com/wahyudibo/go-todo-api/internal/dto"
 	"github.com/wahyudibo/go-todo-api/internal/repository"
 	"github.com/wahyudibo/go-todo-api/internal/repository/models"
@@ -15,11 +18,16 @@ import (
 
 type Handler struct {
 	TodoRepository repository.TodoRepository
+	StorageAdapter storageadapter.StorageAdapter
 }
 
-func NewTodoService(todoRepo repository.TodoRepository) *Handler {
+func NewTodoService(
+	todoRepo repository.TodoRepository,
+	storageAdapter storageadapter.StorageAdapter) *Handler {
+
 	return &Handler{
 		TodoRepository: todoRepo,
+		StorageAdapter: storageAdapter,
 	}
 }
 
@@ -168,4 +176,51 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
+	const MAX_UPLOAD_SIZE = 1 << 20 // 1MB
+
+	r.Body = http.MaxBytesReader(w, r.Body, MAX_UPLOAD_SIZE)
+	if err := r.ParseMultipartForm(MAX_UPLOAD_SIZE); err != nil {
+		render.Status(r, http.StatusRequestEntityTooLarge)
+		render.JSON(w, r, &dto.ErrorResponse{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	path := r.FormValue("path")
+
+	file, fileHeader, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	defer file.Close()
+
+	// append timestamp to avoid file collision
+	fileName := fmt.Sprintf("/%d_%s", time.Now().UnixNano(), fileHeader.Filename)
+
+	objectKey, err := h.StorageAdapter.Upload(r.Context(), path, fileName, file)
+	if err != nil {
+		log.Errorf("failed when uploading file: %+v\n", err)
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, &dto.ErrorResponse{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	response := &dto.UploadResponse{
+		ObjectKey: objectKey,
+	}
+
+	render.Status(r, http.StatusCreated)
+	render.JSON(w, r, response)
+}
+
+func (h *Handler) Download(w http.ResponseWriter, r *http.Request) {
+
 }

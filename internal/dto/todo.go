@@ -31,3 +31,7 @@ func (r *UpdateTodoRequest) ToModel() map[string]interface{} {
 
 	return updates
 }
+
+type UploadResponse struct {
+	ObjectKey string `json:"object_key"`
+}
